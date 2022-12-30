@@ -1,4 +1,4 @@
-const pl = {
+export const pl = {
   attention:{
       title:'Dobrze, że jesteś, sprawdź to zadanie',
       subtitle:'Pomoże Ci ogarnąć jak zmieniać język w apkach reacta',

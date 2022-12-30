@@ -1,4 +1,6 @@
 import { Translate } from "@google-cloud/translate/build/src/v2/index";
+require('dotenv').config()
+
 
 export class Translator {
   readonly CREDENTIALS = JSON.parse(process.env.CREDENTIALS);
@@ -6,6 +8,9 @@ export class Translator {
     credentials: this.CREDENTIALS,
     projectId: this.CREDENTIALS.projectId,
   });
+
+  constructor() {
+  }
 
   public async translate(
     text: string,
