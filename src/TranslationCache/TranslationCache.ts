@@ -5,15 +5,10 @@ import { text } from "stream/consumers";
 
 export class TranslationCache {
   readonly pathToTranslations = path.join(__dirname, "../translations");
-  readonly;
-
-  public test() {
-    console.log(this.pathToTranslations);
-  }
 
   public async lookForTranslations(translationName: string): Promise<boolean> {
     return await new Promise(async (resolve, reject) => {
-      const data = await fs.promises.readdir(this.pathToTranslations);
+      const data: string[] = await fs.promises.readdir(this.pathToTranslations);
       if (data.find((t) => t === translationName)) {
         resolve(true);
       }
@@ -23,7 +18,7 @@ export class TranslationCache {
 
   public async readTranslation(translationName: string): Promise<string> {
     let outcomeTranslation: string = "";
-    return await new Promise((resolve) => {
+    return await new Promise<string>((resolve) => {
       fs.createReadStream(path.join(this.pathToTranslations, translationName))
         .on("data", (data) => {
           outcomeTranslation += data.toString();
@@ -34,15 +29,18 @@ export class TranslationCache {
     });
   }
 
-  public async writeTranslation(textToSave: string, savedTranslationName: string) {
-    return await new Promise<boolean>((resolve, reject) => {
-      const file = fs.createWriteStream(
+  public async writeTranslation(
+    textToSave: string,
+    savedTranslationName: string
+  ): Promise<string> {
+    return await new Promise<string>((resolve, reject) => {
+      const file: fs.WriteStream = fs.createWriteStream(
         path.join(this.pathToTranslations, savedTranslationName)
       );
       file.write(textToSave);
       file.end();
       file.on("finish", () => {
-        resolve(true);
+        resolve("Successfully saved translation");
       });
       file.on("error", reject);
     });

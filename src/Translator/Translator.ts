@@ -1,5 +1,5 @@
 import { Translate } from "@google-cloud/translate/build/src/v2/index";
-import { TranslationCache } from "../Cache/Cache";
+import { TranslationCache } from "../TranslationCache/TranslationCache";
 require("dotenv").config();
 
 export class Translator {
@@ -10,30 +10,33 @@ export class Translator {
   });
   readonly cache: TranslationCache = new TranslationCache();
 
-  public async getTranslation(text: string, targetLanguage: string) {
+  public async getTranslation(
+    text: string,
+    targetLanguage: string
+  ): Promise<string> {
     try {
       const detectedLanguage: string = await this.detectLanguage(text);
       const nameForTranslationName: string = `${text.length}${detectedLanguage}${targetLanguage}.txt`;
       const foundTranslation: boolean = await this.cache.lookForTranslations(
         nameForTranslationName
       );
-      
-      if (foundTranslation) {                
-        return await this.cache.readTranslation(nameForTranslationName);;
+
+      if (foundTranslation) {
+        return await this.cache.readTranslation(nameForTranslationName);
       }
 
-      console.log(foundTranslation);
-      
       const translation: string = await this.translate(text, targetLanguage);
-      await this.cache.writeTranslation(translation, nameForTranslationName);
-      
-      return "Successfully translate the text";
+
+      return await this.cache.writeTranslation(
+        translation,
+        nameForTranslationName
+      );
     } catch (error) {
       return error.message;
     }
   }
 
-  public async translate(
+  private async translate(
     text: string,
     targetLanguage: string
   ): Promise<string> {
@@ -49,7 +52,7 @@ export class Translator {
     }
   }
 
-  private async detectLanguage(textToTranslate: string) {
+  private async detectLanguage(textToTranslate: string): Promise<string> {
     try {
       const response = await this.translateConfig.detect(textToTranslate);
       return response[0].language;
