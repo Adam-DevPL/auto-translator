@@ -1,6 +1,6 @@
 import { Translate } from "@google-cloud/translate/build/src/v2/index";
-require('dotenv').config()
-
+import { TranslationCache } from "../Cache/Cache";
+require("dotenv").config();
 
 export class Translator {
   readonly CREDENTIALS = JSON.parse(process.env.CREDENTIALS);
@@ -8,8 +8,29 @@ export class Translator {
     credentials: this.CREDENTIALS,
     projectId: this.CREDENTIALS.projectId,
   });
+  readonly cache: TranslationCache = new TranslationCache();
 
-  constructor() {
+  public async getTranslation(text: string, targetLanguage: string) {
+    try {
+      const detectedLanguage: string = await this.detectLanguage(text);
+      const nameForTranslationName: string = `${text.length}${detectedLanguage}${targetLanguage}.txt`;
+      const foundTranslation: boolean = await this.cache.lookForTranslations(
+        nameForTranslationName
+      );
+      
+      if (foundTranslation) {                
+        return await this.cache.readTranslation(nameForTranslationName);;
+      }
+
+      console.log(foundTranslation);
+      
+      const translation: string = await this.translate(text, targetLanguage);
+      await this.cache.writeTranslation(translation, nameForTranslationName);
+      
+      return "Successfully translate the text";
+    } catch (error) {
+      return error.message;
+    }
   }
 
   public async translate(
@@ -25,6 +46,15 @@ export class Translator {
     } catch (error) {
       console.log(error);
       return "";
+    }
+  }
+
+  private async detectLanguage(textToTranslate: string) {
+    try {
+      const response = await this.translateConfig.detect(textToTranslate);
+      return response[0].language;
+    } catch (error) {
+      throw new Error("Can't detect the language");
     }
   }
 }
