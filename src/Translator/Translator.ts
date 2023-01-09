@@ -1,4 +1,5 @@
 import { TranslationCache } from "../TranslationCache/TranslationCache";
+import { TranslatorResponse } from "./types/Translator.types";
 
 require("dotenv").config();
 
@@ -9,7 +10,7 @@ export class Translator {
   getTranslation = async (
     text: string,
     targetLanguage: string
-  ): Promise<string> => {
+  ): Promise<TranslatorResponse> => {
     try {
       const detectedLanguage: string = await this.detectLanguage(text);
       const nameForTranslationName: string = `${text.length}${detectedLanguage}${targetLanguage}.txt`;
@@ -18,7 +19,13 @@ export class Translator {
       );
 
       if (foundTranslation) {
-        return await this.cache.readTranslation(nameForTranslationName);
+        const translation: string = await this.cache.readTranslation(
+          nameForTranslationName
+        );
+        return {
+          targetLanguage,
+          translation,
+        };
       }
 
       const translation: string = await this.translate(
@@ -28,9 +35,14 @@ export class Translator {
       );
 
       await this.cache.writeTranslation(translation, nameForTranslationName);
-      return translation;
+
+      return {
+        targetLanguage,
+        translation,
+      };
     } catch (error) {
-      return error.message;
+      console.log(error);
+      return { targetLanguage, error };
     }
   };
 
@@ -83,7 +95,7 @@ export class Translator {
 
       return new Promise((resolve) => resolve(data.detections[0][0].language));
     } catch (error) {
-      throw new Error(error.message);
+      throw new Error(error);
     }
   };
 }
