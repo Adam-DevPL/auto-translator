@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { TranslationCache } from "../TranslationCache";
+import { TranslationCache } from "../TranslationCache.service";
 
 describe("testing finding translation file, reading and writing file", () => {
   describe("testing finding file in path /translations", () => {
