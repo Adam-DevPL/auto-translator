@@ -5,22 +5,22 @@ interface FetchInit {
   headers?: HeadersInit;
 }
 
-export type FetchResp =
-  | {
-      isSuccess: true;
-      data: any;
-    }
-  | {
-      isSuccess: false;
-      errorMsg: string;
-    };
+export type ApiReponse = {
+  data: {
+    translations: translation[];
+  };
+};
+
+type translation = {
+  translatedText: string;
+  detectedSourceLanguage: string;
+};
 
 export class FetchDataApi {
   private static readonly GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
   private static readonly url = `https://translation.googleapis.com/language/translate/v2?key=${this.GOOGLE_API_KEY}`;
 
-  private static async request(url: string): Promise<FetchResp> {
-    let errorMsg = "";
+  private static async request(url: string): Promise<ApiReponse> {
     let init: FetchInit = {
       method: "POST",
       headers: {
@@ -33,15 +33,9 @@ export class FetchDataApi {
       if (res.status !== 200) {
         throw new Error(res.statusText);
       }
-      const data = await res.json();
-      return { isSuccess: true, data } as FetchResp;
+      return (await res.json()) as ApiReponse;
     } catch ({ message }) {
-      if (message === "unknown") {
-        errorMsg = "";
-      } else {
-        errorMsg = `${message}`;
-      }
-      return { isSuccess: false, errorMsg } as FetchResp;
+      throw new Error(message);
     }
   }
 

@@ -2,12 +2,14 @@ import { Response, Request, NextFunction } from "express";
 import hash from "object-hash";
 import { FileSystemTranslator } from "../FileSystemTranslator/FileSystemTranslator.service";
 import { AutoTranslatorDto, RequestBody } from "../dto/AutoTranslatorDto";
-import { TranslatorResponse } from "../types/TranslatorResponse.types";
+import { TranslatorResponse } from "../Translator/TranslatorResponse.types";
+import { ITranslatorCache } from "./TranslatorCache.types";
+import { IFileSystemTranslator } from "../FileSystemTranslator/FileSystemTranslator.interface";
 
-export class TranslationCache {
-  private readonly fileSystem: FileSystemTranslator;
+export class TranslationCache implements ITranslatorCache {
+  private readonly fileSystem: IFileSystemTranslator;
 
-  constructor(fileSystem: FileSystemTranslator) {
+  constructor(fileSystem: IFileSystemTranslator) {
     this.fileSystem = fileSystem;
   }
 
@@ -17,38 +19,22 @@ export class TranslationCache {
     next: NextFunction
   ) => {
     try {
-      const targetLanguage: string = request.body.targetLanguage;
-      const fileName: string = `${hash(request.body)}.json`;
-      const isFileFound: boolean = await this.lookForTranslations(fileName);
-
-      if (!isFileFound) {
-        next();
-      } else {
-        const translation: string = await this.readTranslation(fileName);
-        const cacheResponse: TranslatorResponse = {
-          isError: false,
-          targetLanguage,
-          translation: JSON.parse(translation),
-        };
-        response.status(200).send(cacheResponse);
+      if (response.locals.validationError) {
+        throw new Error(response.locals.validationError);
       }
-    } catch (error) {
-      const cacheResponse: TranslatorResponse = {
-        isError: true,
-        errorMsg: error.message,
-      };
-      response.status(404).send(cacheResponse);
-    }
-  };
+      const fileName: string = `${hash(request.body)}.json`;
 
-  private lookForTranslations = async (
-    translationName: string
-  ): Promise<boolean> => {
-    try {
-      return await this.fileSystem.findFile(translationName);
+      const translation: string = await this.readTranslation(fileName);
+
+      const cacheResponse: TranslatorResponse = {
+        status: 200,
+        translation: JSON.parse(translation),
+      };
+      response.locals.cacheResponse = cacheResponse;
     } catch (error) {
-      throw new Error("Something goes wrong with looking for file");
+      console.error(error);
     }
+    next();
   };
 
   private readTranslation = async (
@@ -57,18 +43,7 @@ export class TranslationCache {
     try {
       return await this.fileSystem.readFile(translationName);
     } catch (error) {
-      throw new Error("Something goes wrong with reading the file");
-    }
-  };
-
-  public writeTranslation = async (
-    textToSave: string,
-    savedTranslationName: string
-  ): Promise<void> => {
-    try {
-      this.fileSystem.writeFile(savedTranslationName, textToSave);
-    } catch (error) {
-      throw new Error("Something goes wrong with saving the file");
+      throw new Error(error);
     }
   };
 }

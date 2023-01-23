@@ -1,35 +1,23 @@
 export class DataOperation {
-  
-  public static getStringArray = (
-    data: any,
-    stringDivider: string
-  ): string[] => {
-    let stringArray: string[] = [];
-
-    Object.entries(data).forEach(([key, value]) => {
-      if (!this.isObject(value) && typeof value === "string") {
-        stringArray.push(value.concat(stringDivider));
-      } else if (this.isObject(value)) {
-        const str: string[] = this.getStringArray(value, stringDivider);
-        stringArray = stringArray.concat(str);
-      }
-    });
-    return stringArray;
-  };
-
-  public static updateObject = <T>(objectToUpdate: T, str: string[]) => {
+  public static updateObject = async <T>(
+    objectToUpdate: T,
+    targetLanguage: string,
+    callback: (text: string, targetLanguage: string) => Promise<string>
+  ): Promise<T> => {
+    const arr: unknown[] = Object.entries(objectToUpdate);
     return Object.fromEntries(
-      Object.entries(objectToUpdate).map(([key, value], index) => {
-        if (!this.isObject(value) && typeof value === "string") {
-          if (value[0] === "/") {
-            return [key, value];
+      await Promise.all(
+        arr.map(async ([key, value]) => {
+          if (!this.isObject(value) && typeof value === "string") {
+            return [key, await callback(value, targetLanguage)];
+          } else if (this.isObject(value)) {
+            return [
+              key,
+              await this.updateObject(value, targetLanguage, callback),
+            ];
           }
-          return [key, str.shift()];
-        } else if (this.isObject(value)) {
-          const o = this.updateObject(value, str);
-          return [key, o];
-        }
-      })
+        })
+      )
     );
   };
 

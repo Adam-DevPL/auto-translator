@@ -1,87 +1,93 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import hash from "object-hash";
-import { AutoTranslatorDto, RequestBody } from "../dto/AutoTranslatorDto";
+import {
+  AutoTranslatorDto,
+  RequestBody,
+  ToTranslate,
+} from "../dto/AutoTranslatorDto";
 require("dotenv").config();
 
-import { TranslationCache } from "../TranslationCache/TranslationCache.service";
-import { TranslatorResponse } from "../types/TranslatorResponse.types";
-import { FetchDataApi, FetchResp } from "../Utils/FetchDataApi";
+import {
+  TranslatorResponse,
+  TranslatorResponseError,
+} from "./TranslatorResponse.types";
+import { ApiReponse, FetchDataApi } from "../Utils/FetchDataApi";
 import { DataOperation } from "../Utils/DataOperation";
+import { IFileSystemTranslator } from "../FileSystemTranslator/FileSystemTranslator.interface";
 
 export class Translator {
-  private readonly translationCache: TranslationCache;
-  private stringDivider: string = " /--/";
+  private readonly fileSystemTranslator: IFileSystemTranslator;
 
-  constructor(translationCache: TranslationCache) {
-    this.translationCache = translationCache;
+  constructor(fileSystemTranslator: IFileSystemTranslator) {
+    this.fileSystemTranslator = fileSystemTranslator;
   }
 
   public getTranslation = async (
     req: RequestBody<AutoTranslatorDto>,
     res: Response
   ) => {
+    const cacheResponse: TranslatorResponse = res.locals.cacheResponse;
     try {
-      let response: AutoTranslatorDto = { ...req.body };
-      const str = DataOperation.getStringArray(response, this.stringDivider);
+      if (cacheResponse) {
+        return res.status(200).send(cacheResponse);
+      }
 
-      const translation: string = await this.translate(
-        str,
-        req.body.targetLanguage
+      const { targetLanguage, toTranslate }: AutoTranslatorDto = {
+        ...req.body,
+      };
+
+      const translation: ToTranslate = await DataOperation.updateObject(
+        toTranslate,
+        targetLanguage,
+        this.translate
       );
 
-      const stringArrayWithoutDivider: string[] = translation
-        .split(this.stringDivider.concat(","))
-        .map((ele, index, array) => {
-          if (index === array.length - 1) {
-            return ele.replace(this.stringDivider, "");
-          }
-          return ele;
-        });
+      const translationToWrite: AutoTranslatorDto = {
+        targetLanguage: req.body.targetLanguage,
+        toTranslate: translation,
+      };
 
-      const afterTranslation = DataOperation.updateObject(
-        response,
-        stringArrayWithoutDivider
-      );
-
-      await this.translationCache.writeTranslation(
-        JSON.stringify(afterTranslation),
-        hash(req.body)
+      await this.fileSystemTranslator.writeFile(
+        hash(req.body),
+        JSON.stringify(translationToWrite)
       );
 
       const translatorResponse: TranslatorResponse = {
-        isError: false,
-        targetLanguage: req.body.targetLanguage,
-        translation: afterTranslation,
+        status: 200,
+        translation: {
+          targetLanguage,
+          toTranslate: translation,
+        },
       };
 
       res.status(200).send(translatorResponse);
     } catch (error) {
-      const errorResponse: TranslatorResponse = {
-        isError: true,
-        errorMsg: error.message,
+      const translatorError: TranslatorResponseError = {
+        status: 500,
+        message: error.message,
       };
-      res.status(404).send(errorResponse);
+      res.status(500).send(translatorError);
     }
   };
 
-  public translate = async (
-    text: string[],
+  private translate = async (
+    text: string,
     targetLanguage: string
   ): Promise<string> => {
     try {
       const endpoint: string = `&q=${text}&target=${targetLanguage}`;
 
-      const response: FetchResp = await FetchDataApi.postData(endpoint);
+      const response: ApiReponse = await FetchDataApi.postData(endpoint);
 
-      if (response.isSuccess === false) {
-        throw new Error(response.errorMsg);
+      if (response === undefined) {
+        throw new Error("No data get from API!");
       }
 
       const {
         data: {
           translations: [{ translatedText }],
         },
-      } = response.data;
+      } = response;
 
       return translatedText;
     } catch (error) {

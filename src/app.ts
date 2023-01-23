@@ -4,19 +4,46 @@ import { TranslationCache } from "./TranslationCache/TranslationCache.service";
 import { Translator } from "./Translator/Translator.service";
 import { Validator } from "./Validator/Validator.middleware";
 
-const app: Application = express();
+class App {
+  private app: Application;
+  private PORT: number = Number(process.env.PORT);
+  private fileSystem: FileSystemTranslator;
+  private translatoionCache: TranslationCache;
+  private translator: Translator;
 
-const PORT: number = 3000;
+  constructor() {
+    this.app = express();
+    this.loadConfig();
+    this.loadDI();
+    this.loadMiddlewares();
+    this.loadRoutes();
+    this.build();
+  }
 
-const fileSystem: FileSystemTranslator = new FileSystemTranslator();
-const translatoionCache: TranslationCache = new TranslationCache(fileSystem);
-const translator: Translator = new Translator(translatoionCache);
+  private loadDI = (): void => {
+    this.fileSystem = new FileSystemTranslator();
+    this.translatoionCache = new TranslationCache(this.fileSystem);
+    this.translator = new Translator(this.fileSystem);
+  };
 
-app.use(express.json());
-app.use(Validator.validateInputData);
-app.use(translatoionCache.checkCacheForTranslation);
-app.use("/translate", translator.getTranslation);
+  private loadConfig = (): void => {
+    this.app.use(express.json());
+  };
 
-app.listen(PORT, (): void => {
-  console.log("SERVER IS UP ON PORT:", PORT);
-});
+  private loadMiddlewares = (): void => {
+    this.app.use(Validator.validateInputData);
+    this.app.use(this.translatoionCache.checkCacheForTranslation);
+  };
+
+  private loadRoutes = (): void => {
+    this.app.use("/translate", this.translator.getTranslation);
+  };
+
+  private build = (): void => {
+    this.app.listen(this.PORT, (): void => {
+      console.log("SERVER IS UP ON PORT:", this.PORT);
+    });
+  };
+}
+
+export default new App();
