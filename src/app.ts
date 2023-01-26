@@ -5,7 +5,7 @@ import { Translator } from "./Translator/Translator.service";
 import { Validator } from "./Validator/Validator.middleware";
 
 class App {
-  private app: Application;
+  public app: Application;
   private PORT: number = Number(process.env.PORT);
   private fileSystem: FileSystemTranslator;
   private translatoionCache: TranslationCache;
@@ -46,4 +46,4 @@ class App {
   };
 }
 
-export default new App();
+export default new App().app;

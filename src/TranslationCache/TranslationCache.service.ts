@@ -19,10 +19,11 @@ export class TranslationCache implements ITranslatorCache {
     next: NextFunction
   ) => {
     try {
-      if (response.locals.validationError) {
+      const validationError = response.locals?.validationError || null;
+      if (validationError) {
         throw new Error(response.locals.validationError);
       }
-      const fileName: string = `${hash(request.body)}.json`;
+      const fileName: string = hash(request.body);
 
       const translation: string = await this.readTranslation(fileName);
 

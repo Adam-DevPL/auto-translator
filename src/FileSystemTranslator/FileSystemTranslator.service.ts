@@ -6,12 +6,15 @@ export class FileSystemTranslator implements IFileSystemTranslator {
   private readonly pathToTranslations = path.join(__dirname, "../translations");
 
   public readFile = async (fileName: string): Promise<string> => {
-    return await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       let data = "";
 
-      fs.createReadStream(path.join(this.pathToTranslations, fileName), "utf8")
+      fs.createReadStream(
+        path.join(this.pathToTranslations, `${fileName}.json`),
+        "utf8"
+      )
         .on("error", (error) => {
-          reject("Can't read the file! Details: " + error.message);
+          reject(new Error("Can't read the file!"));
         })
         .on("data", (chunk) => (data += chunk))
         .on("end", () => resolve(data));
@@ -22,13 +25,15 @@ export class FileSystemTranslator implements IFileSystemTranslator {
     fileName: string,
     textToSave: string
   ): Promise<string> => {
-    return await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const writeStream = fs.createWriteStream(
         path.join(this.pathToTranslations, `${fileName}.json`)
       );
       writeStream.write(textToSave, "utf8");
       writeStream
-        .on("error", (error) => reject("Can't write a file" + error.message))
+        .on("error", (error) => {
+          reject(new Error("Can't write a file"));
+        })
         .on("finish", () => resolve("Successfully wrote all data"))
         .end();
     });

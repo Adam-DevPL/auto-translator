@@ -6,7 +6,7 @@
   "scripts": {
     "start": "tsnd src/app.ts",
     "build": "tsc",
-    "test": "mocha --require ts-node/register  src/**/*test.ts"
+    "test": "mocha --timeout 2000 --require ts-node/register  src/**/*test.ts"
   },
   "keywords": [],
   "author": "",
@@ -25,7 +25,9 @@
   },
   "dependencies": {
     "@google-cloud/translate": "^7.0.5",
+    "@types/chai-http": "^4.2.0",
     "@types/object-hash": "^3.0.2",
+    "chai-http": "^4.3.0",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "joi": "^17.7.0",

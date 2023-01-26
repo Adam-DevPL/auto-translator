@@ -23,5 +23,6 @@ export class Validator {
       message,
     }
     res.locals.validationError = validationError;
+    next();
   };
 }
