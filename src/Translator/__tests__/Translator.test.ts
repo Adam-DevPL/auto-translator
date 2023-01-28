@@ -61,7 +61,7 @@ describe("main module Translator", () => {
     });
   });
 
-  describe("read translation from file when it was once translated", () => {
+  describe("translation", () => {
     it("sending data to translate there should be a file saved", async () => {
       //given
       const fileSystemTranslator = new FileSystemTranslator();

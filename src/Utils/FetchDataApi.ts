@@ -21,6 +21,8 @@ export class FetchDataApi {
   private static readonly url = `https://translation.googleapis.com/language/translate/v2?key=${this.GOOGLE_API_KEY}`;
 
   private static async request(url: string): Promise<ApiReponse> {
+    console.log(url);
+        
     let init: FetchInit = {
       method: "POST",
       headers: {
