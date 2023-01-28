@@ -2,7 +2,10 @@ import { Response, Request, NextFunction } from "express";
 import hash from "object-hash";
 import { FileSystemTranslator } from "../FileSystemTranslator/FileSystemTranslator.service";
 import { AutoTranslatorDto, RequestBody } from "../dto/AutoTranslatorDto";
-import { TranslatorResponse } from "../Translator/TranslatorResponse.types";
+import {
+  TranslatorResponse,
+  TranslatorResponseError,
+} from "../Translator/TranslatorResponse.types";
 import { ITranslatorCache } from "./TranslatorCache.types";
 import { IFileSystemTranslator } from "../FileSystemTranslator/FileSystemTranslator.interface";
 
@@ -19,10 +22,6 @@ export class TranslationCache implements ITranslatorCache {
     next: NextFunction
   ) => {
     try {
-      const validationError = response.locals?.validationError || null;
-      if (validationError) {
-        throw new Error(response.locals.validationError);
-      }
       const fileName: string = hash(request.body);
 
       const translation: string = await this.readTranslation(fileName);

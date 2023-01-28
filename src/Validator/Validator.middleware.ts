@@ -15,14 +15,11 @@ export class Validator {
     if (valid) {
       return next();
     }
-    const { details } = error;
-    const message = details.map((i) => i.message).join(",");
 
     const validationError: TranslatorResponseError = {
       status: 400,
-      message,
+      message: "Bad request - invalid data",
     }
-    res.locals.validationError = validationError;
-    next();
+    next(validationError);
   };
 }

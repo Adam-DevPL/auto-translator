@@ -31,11 +31,16 @@ export class FetchDataApi {
     try {
       const res = await fetch(url, init);
       if (res.status !== 200) {
-        throw new Error(res.statusText);
+        const { error } = await res.json();
+        throw new Error(error.message);
       }
       return (await res.json()) as ApiReponse;
-    } catch ({ message }) {
-      throw new Error(message);
+    } catch (error) {
+      throw new Error(
+        error.message === "Invalid Value"
+          ? "Bad Request"
+          : "Internal server error"
+      );
     }
   }
 

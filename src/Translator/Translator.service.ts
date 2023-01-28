@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { NextFunction, Response } from "express";
 import hash from "object-hash";
 import {
   AutoTranslatorDto,
@@ -12,8 +12,8 @@ import {
   TranslatorResponseError,
 } from "./TranslatorResponse.types";
 import { ApiReponse, FetchDataApi } from "../Utils/FetchDataApi";
-import { DataOperation } from "../Utils/DataOperation";
 import { IFileSystemTranslator } from "../FileSystemTranslator/FileSystemTranslator.interface";
+import { CustomError } from "../Utils/errors";
 
 export class Translator {
   private readonly fileSystemTranslator: IFileSystemTranslator;
@@ -24,9 +24,10 @@ export class Translator {
 
   public getTranslation = async (
     req: RequestBody<AutoTranslatorDto>,
-    res: Response
+    res: Response,
+    next: NextFunction
   ) => {
-    const cacheResponse: TranslatorResponse = res.locals.cacheResponse;
+    const cacheResponse: TranslatorResponse = res.locals.cacheResponse || null;
     try {
       if (cacheResponse) {
         return res.status(200).send(cacheResponse);
@@ -36,10 +37,9 @@ export class Translator {
         ...req.body,
       };
 
-      const translation: ToTranslate = await DataOperation.updateObject(
+      const translation: ToTranslate = await this.updateObject(
         toTranslate,
-        targetLanguage,
-        this.translate
+        targetLanguage
       );
 
       const translationToWrite: AutoTranslatorDto = {
@@ -63,10 +63,10 @@ export class Translator {
       res.status(200).send(translatorResponse);
     } catch (error) {
       const translatorError: TranslatorResponseError = {
-        status: 500,
+        status: error.message === "Bad Request" ? 400 : 500,
         message: error.message,
       };
-      res.status(500).send(translatorError);
+      next(translatorError);
     }
   };
 
@@ -93,5 +93,27 @@ export class Translator {
     } catch (error) {
       throw new Error(error.message);
     }
+  };
+
+  private updateObject = async <T>(
+    objectToUpdate: T,
+    targetLanguage: string
+  ): Promise<T> => {
+    const arr: unknown[] = Object.entries(objectToUpdate);
+    return Object.fromEntries(
+      await Promise.all(
+        arr.map(async ([key, value]) => {
+          if (!this.isObject(value) && typeof value === "string") {
+            return [key, await this.translate(value, targetLanguage)];
+          } else if (this.isObject(value)) {
+            return [key, await this.updateObject(value, targetLanguage)];
+          }
+        })
+      )
+    );
+  };
+
+  private isObject = (obj: unknown) => {
+    return Object.prototype.toString.call(obj) === "[object Object]";
   };
 }

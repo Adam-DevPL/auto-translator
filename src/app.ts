@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from "express";
 import { FileSystemTranslator } from "./FileSystemTranslator/FileSystemTranslator.service";
 import { TranslationCache } from "./TranslationCache/TranslationCache.service";
 import { Translator } from "./Translator/Translator.service";
+import { handleError } from "./Utils/errors";
 import { Validator } from "./Validator/Validator.middleware";
 
 class App {
@@ -17,6 +18,7 @@ class App {
     this.loadDI();
     this.loadMiddlewares();
     this.loadRoutes();
+    this.handleErrors();
     this.build();
   }
 
@@ -38,6 +40,10 @@ class App {
   private loadRoutes = (): void => {
     this.app.use("/translate", this.translator.getTranslation);
   };
+
+  private handleErrors = (): void => {
+    this.app.use(handleError)
+  }
 
   private build = (): void => {
     this.app.listen(this.PORT, (): void => {
